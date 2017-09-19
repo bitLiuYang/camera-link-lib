@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- File       : CLinkRxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
--- Created    : 2015-08-03
+-- Created    : 2017-09-19
 -- Last update: 2017-09-19
 -------------------------------------------------------------------------------
 -- Description: 
@@ -40,7 +40,7 @@ entity CLinkRxWrapper is
       rxCtrl          : in  slv(1 downto 0);
       rxDecErr        : in  slv(1 downto 0);
       rxDispErr       : in  slv(1 downto 0);
-      -- EVR Interface (rxClk domain)
+      -- EVR Interface (evrClk domain)
       evrClk          : in  sl;
       evrTrig         : in  sl;
       evrTimeStamp    : in  slv(63 downto 0);
@@ -65,7 +65,6 @@ architecture rtl of CLinkRxWrapper is
       numTrains      : slv(31 downto 0);
       numCycles      : slv(31 downto 0);
       serBaud        : slv(31 downto 0);
-      serFifoRdEn    : sl;
       axilReadSlave  : AxiLiteReadSlaveType;
       axilWriteSlave : AxiLiteWriteSlaveType;
    end record;
@@ -77,7 +76,6 @@ architecture rtl of CLinkRxWrapper is
       numTrains      => toSlv(512, 32),
       numCycles      => toSlv(1536, 32),
       serBaud        => toSlv(57600, 32),
-      serFifoRdEn    => '0',
       axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C,
       axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C);
 
@@ -140,7 +138,7 @@ begin
          -- Serial TX  (sysClk domain)
          serTfgValid         => master.tValid,
          serTfgByte          => master.tData(7 downto 0),
-         -- DMA Interface
+         -- DMA Interface (dmaClk domain)
          dmaClk              => sysClk,
          dmaRst              => sysRst,
          dmaStreamMaster     => camDataMaster,
