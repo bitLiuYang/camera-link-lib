@@ -28,7 +28,7 @@ entity CLinkRxWrapper is
    generic (
       TPD_G            : time                 := 1 ns;
       DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
-      LANE_G           : integer range 0 to 7 := 0
+      LANE_G           : integer range 0 to 7 := 0;
       AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C);
    port (
       -- System Interface
@@ -46,9 +46,9 @@ entity CLinkRxWrapper is
       evrTimeStamp    : in  slv(63 downto 0);
       -- DMA Interfaces (sysClk domain)
       camDataMaster   : out AxiStreamMasterType;
-      camDataSlave    : in  AxiStreamSlaveType
+      camDataSlave    : in  AxiStreamSlaveType;
       serTxMaster     : out AxiStreamMasterType;
-      serTxSlave      : in  AxiStreamSlaveType
+      serTxSlave      : in  AxiStreamSlaveType;
       -- AXI-Lite Register Interface (sysClk domain)
       axilReadMaster  : in  AxiLiteReadMasterType;
       axilReadSlave   : out AxiLiteReadSlaveType;
@@ -82,7 +82,7 @@ architecture rtl of CLinkRxWrapper is
    signal r   : RegType := REG_INIT_C;
    signal rin : RegType;
 
-   signal serTxMaster : AxiStreamMasterType := AXI_STREAM_MASTER_INIT_C;
+   signal master : AxiStreamMasterType := AXI_STREAM_MASTER_INIT_C;
 
    signal linkStatus    : sl;
    signal cLinkLock     : sl;

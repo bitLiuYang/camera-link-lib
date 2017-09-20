@@ -24,30 +24,31 @@ use work.StdRtlPkg.all;
 use work.AxiLitePkg.all;
 use work.AxiStreamPkg.all;
 use work.TimingPkg.all;
+use work.SsiPkg.all;
 
 entity CLinkCore is
    generic (
-      TPD_G            : time             := 1 ns;
-      DEFAULT_CLINK_G  : boolean          := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
+      TPD_G            : time                 := 1 ns;
+      DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
       LANE_G           : integer range 0 to 7 := 0;
-      AXI_ERROR_RESP_G : slv(1 downto 0)  := AXI_RESP_DECERR_C;
-      AXI_BASE_ADDR_G  : slv(31 downto 0) := (others => '0'));
+      AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C;
+      AXI_BASE_ADDR_G  : slv(31 downto 0)     := (others => '0'));
    port (
       -- RX Interface (rxClk domain)
       rxClk           : in  sl;
       rxData          : in  slv(15 downto 0);
       rxCtrl          : in  slv(1 downto 0);
       rxDecErr        : in  slv(1 downto 0);
-      rxDispErr       : in  slv(1 downto 0);   
+      rxDispErr       : in  slv(1 downto 0);
       -- TX Interface (txClk domain)
       txClk           : in  sl;
       txData          : out slv(15 downto 0);
-      txCtrl          : out slv(1 downto 0);     
+      txCtrl          : out slv(1 downto 0);
       -- DMA Interface (sysClk domain)
-      dmaObMaster    : in  AxiStreamMasterType;
-      dmaObSlave     : out AxiStreamSlaveType;
-      dmaIbMaster    : out AxiStreamMasterType;
-      dmaIbSlave     : in  AxiStreamSlaveType;
+      dmaObMaster     : in  AxiStreamMasterType;
+      dmaObSlave      : out AxiStreamSlaveType;
+      dmaIbMaster     : out AxiStreamMasterType;
+      dmaIbSlave      : in  AxiStreamSlaveType;
       -- Timing Interface (evrClk domain)
       evrClk          : in  sl;
       evrRst          : in  sl;
@@ -58,34 +59,37 @@ entity CLinkCore is
       axilReadMaster  : in  AxiLiteReadMasterType;
       axilReadSlave   : out AxiLiteReadSlaveType;
       axilWriteMaster : in  AxiLiteWriteMasterType;
-      axilWriteSlave  : out AxiLiteWriteSlaveType);  
+      axilWriteSlave  : out AxiLiteWriteSlaveType);
 end CLinkCore;
 
 architecture mapping of CLinkCore is
 
-   constant NUM_AXI_MASTERS_C : natural                                                        := 3;
-   
-   constant TRIG_INDEX_C : natural                                                        := 0;
-   constant TX_INDEX_C : natural                                                        := 1;
-   constant TX_INDEX_C : natural                                                        := 2;
-   
-   constant AXI_CONFIG_C      : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 15, 12);
+   constant NUM_AXI_MASTERS_C : natural := 3;
+
+   constant TRIG_INDEX_C : natural := 0;
+   constant TX_INDEX_C   : natural := 1;
+   constant RX_INDEX_C   : natural := 2;
+
+   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 15, 12);
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXI_MASTERS_C-1 downto 0);
    signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
    signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXI_MASTERS_C-1 downto 0);
-   
-   signal   dmaObMasters : AxiStreamMasterArray(1 downto 0);
-   signal   dmaObSlaves  : AxiStreamSlaveArray(1 downto 0);
-   signal   dmaIbMasters : AxiStreamMasterArray(1 downto 0);
-   signal   dmaIbSlaves  : AxiStreamSlaveArray(1 downto 0); 
-   
-   signal   obMasters : AxiStreamMasterArray(1 downto 0);
-   signal   obSlaves  : AxiStreamSlaveArray(1 downto 0);
-   signal   ibMasters : AxiStreamMasterArray(1 downto 0);
-   signal   ibSlaves  : AxiStreamSlaveArray(1 downto 0);  
-   
+
+   signal dmaObMasters : AxiStreamMasterArray(1 downto 0);
+   signal dmaObSlaves  : AxiStreamSlaveArray(1 downto 0);
+   signal dmaIbMasters : AxiStreamMasterArray(1 downto 0);
+   signal dmaIbSlaves  : AxiStreamSlaveArray(1 downto 0);
+
+   signal obMasters : AxiStreamMasterArray(1 downto 0);
+   signal obSlaves  : AxiStreamSlaveArray(1 downto 0);
+   signal ibMasters : AxiStreamMasterArray(1 downto 0);
+   signal ibSlaves  : AxiStreamSlaveArray(1 downto 0);
+
+   signal evrTrig      : sl;
+   signal evrTimeStamp : slv(63 downto 0);
+
 begin
 
    ---------------------
@@ -109,11 +113,11 @@ begin
          mAxiWriteSlaves     => axilWriteSlaves,
          mAxiReadMasters     => axilReadMasters,
          mAxiReadSlaves      => axilReadSlaves);
-         
+
    U_Trig : entity work.LclsTriggerCore
       generic map (
          TPD_G                => TPD_G,
-         AXIL_BASE_ADDR_G     => AXI_CONFIG_C(TRIG_INDEX_C).baseAddr)
+         AXIL_BASE_ADDR_G     => AXI_CONFIG_C(TRIG_INDEX_C).baseAddr,
          AXI_ERROR_RESP_G     => AXI_ERROR_RESP_G,
          NUM_OF_TRIG_PULSES_G => 1,
          DELAY_WIDTH_G        => 32,
@@ -135,24 +139,24 @@ begin
          timeStamp_o     => evrTimeStamp,
          pulseId_o       => open,
          bsa_o           => open,
-         dmod_o          => open);          
-         
+         dmod_o          => open);
+
    U_Tx : entity work.CLinkTxWrapper
       generic map (
          TPD_G            => TPD_G,
-         DEFAULT_CLINK_G   => DEFAULT_CLINK_G,
+         DEFAULT_CLINK_G  => DEFAULT_CLINK_G,
          LANE_G           => LANE_G,
          AXI_ERROR_RESP_G => AXI_ERROR_RESP_G)
       port map (
          -- System Interface
          sysClk          => sysClk,
          sysRst          => sysRst,
-         -- GT Interface (rxClk domain)      
+         -- GT Interface (txClk domain)      
          txClk           => txClk,
          txData          => txData,
          txCtrl          => txCtrl,
          -- EVR Interface (evrClk domain)
-         evrClk           => evrClk,
+         evrClk          => evrClk,
          evrTrig         => evrTrig,
          -- DMA Interface (sysClk domain)
          serRxMaster     => dmaObMaster,
@@ -161,12 +165,12 @@ begin
          axilReadMaster  => axilReadMasters(TX_INDEX_C),
          axilReadSlave   => axilReadSlaves(TX_INDEX_C),
          axilWriteMaster => axilWriteMasters(TX_INDEX_C),
-         axilWriteSlave  => axilWriteSlaves(TX_INDEX_C));   
+         axilWriteSlave  => axilWriteSlaves(TX_INDEX_C));
 
    U_Rx : entity work.CLinkRxWrapper
       generic map (
          TPD_G            => TPD_G,
-         DEFAULT_CLINK_G   => DEFAULT_CLINK_G,
+         DEFAULT_CLINK_G  => DEFAULT_CLINK_G,
          LANE_G           => LANE_G,
          AXI_ERROR_RESP_G => AXI_ERROR_RESP_G)
       port map (
@@ -192,15 +196,15 @@ begin
          axilReadMaster  => axilReadMasters(RX_INDEX_C),
          axilReadSlave   => axilReadSlaves(RX_INDEX_C),
          axilWriteMaster => axilWriteMasters(RX_INDEX_C),
-         axilWriteSlave  => axilWriteSlaves(RX_INDEX_C)); 
-         
+         axilWriteSlave  => axilWriteSlaves(RX_INDEX_C));
+
    U_IbFifo : entity work.AxiStreamFifoV2
       generic map (
          -- General Configurations
          TPD_G               => TPD_G,
          INT_PIPE_STAGES_G   => 1,
          PIPE_STAGES_G       => 1,
-         VALID_THOLD_G       => 128, -- Hold until enough to burst into the interleaving MUX
+         VALID_THOLD_G       => 128,  -- Hold until enough to burst into the interleaving MUX
          VALID_BURST_MODE_G  => true,
          -- FIFO configurations
          BRAM_EN_G           => true,
@@ -225,7 +229,7 @@ begin
          mAxisSlave  => ibSlaves(1));
 
    -- No "store and forward" FIFO requires for UART "byte" serial stream
-   ibMasters(0) <= dmaIbMasters(0);
+   ibMasters(0)   <= dmaIbMasters(0);
    dmaIbSlaves(0) <= ibSlaves(0);
 
    --------------
@@ -236,7 +240,7 @@ begin
          TPD_G          => TPD_G,
          NUM_SLAVES_G   => 2,
          MODE_G         => "INDEXED",
-         ILEAVE_EN_G    => true, -- Using interleaving MUX
+         ILEAVE_EN_G    => true,        -- Using interleaving MUX
          ILEAVE_REARB_G => 0,
          PIPE_STAGES_G  => 1)
       port map (
@@ -248,6 +252,6 @@ begin
          sAxisSlaves  => ibSlaves,
          -- Master
          mAxisMaster  => dmaIbMaster,
-         mAxisSlave   => dmaIbSlave); 
-         
+         mAxisSlave   => dmaIbSlave);
+
 end mapping;

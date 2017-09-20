@@ -23,18 +23,19 @@ use ieee.std_logic_unsigned.all;
 use work.StdRtlPkg.all;
 use work.AxiStreamPkg.all;
 use work.AxiLitePkg.all;
+use work.SsiPkg.all;
 
 entity CLinkTxWrapper is
    generic (
       TPD_G            : time                 := 1 ns;
       DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
-      LANE_G           : integer range 0 to 7 := 0
+      LANE_G           : integer range 0 to 7 := 0;
       AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C);
    port (
       -- System Interface
       sysClk          : in  sl;
       sysRst          : in  sl;
-      -- GT Interface (rxClk domain)      
+      -- GT Interface (txClk domain)      
       txClk           : in  sl;
       txData          : out slv(15 downto 0);
       txCtrl          : out slv(1 downto 0);
@@ -73,8 +74,8 @@ architecture rtl of CLinkTxWrapper is
    signal r   : RegType := REG_INIT_C;
    signal rin : RegType;
 
-   signal serRxMaster : AxiStreamMasterType;
-   signal serRxSlave  : AxiStreamSlaveType
+   signal master : AxiStreamMasterType;
+   signal slave  : AxiStreamSlaveType;
 
 begin
 
@@ -93,7 +94,7 @@ begin
          CASCADE_SIZE_G      => 1,
          FIFO_ADDR_WIDTH_G   => 9,
          -- AXI Stream Port Configurations
-         SLAVE_AXI_CONFIG_G  =>  ssiAxiStreamConfig(4),  -- 32-bit interface
+         SLAVE_AXI_CONFIG_G  => ssiAxiStreamConfig(4),  -- 32-bit interface
          MASTER_AXI_CONFIG_G => ssiAxiStreamConfig(1))  -- 8-bit interface   
       port map (
          -- Slave Port
