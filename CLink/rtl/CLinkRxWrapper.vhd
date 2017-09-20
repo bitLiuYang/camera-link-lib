@@ -2,7 +2,7 @@
 -- File       : CLinkRxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-19
--- Last update: 2017-09-19
+-- Last update: 2017-09-20
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ use work.AxiLitePkg.all;
 entity CLinkRxWrapper is
    generic (
       TPD_G            : time                 := 1 ns;
-      CLK_RATE_INT_G   : integer              := 125000000;
+      DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
       LANE_G           : integer range 0 to 7 := 0
       AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C);
    port (
@@ -103,7 +103,7 @@ begin
    U_CLinkRx : entity work.CLinkRx
       generic map (
          TPD_G          => TPD_G,
-         CLK_RATE_INT_G => CLK_RATE_INT_G,
+         CLK_RATE_INT_G => ite(DEFAULT_CLINK_G, 250000000, 125000000),
          LANE_G         => LANE_G)
       port map (
          -- System Clock and Reset
@@ -213,13 +213,13 @@ begin
       axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
 
       -- Map the read registers
-      axiSlaveRegisterR(regCon, x"00", 0, v.numTrains);
-      axiSlaveRegisterR(regCon, x"04", 0, v.numCycles);
-      axiSlaveRegisterR(regCon, x"08", 0, v.serBaud);
+      axiSlaveRegister(regCon, x"00", 0, v.numTrains);
+      axiSlaveRegister(regCon, x"04", 0, v.numCycles);
+      axiSlaveRegister(regCon, x"08", 0, v.serBaud);
 
-      axiSlaveRegisterR(regCon, x"10", 0, v.enable);
-      axiSlaveRegisterR(regCon, x"10", 1, v.pack16);
-      axiSlaveRegisterR(regCon, x"10", 2, v.trgPolarity);
+      axiSlaveRegister(regCon, x"10", 0, v.enable);
+      axiSlaveRegister(regCon, x"10", 1, v.pack16);
+      axiSlaveRegister(regCon, x"10", 2, v.trgPolarity);
 
       axiSlaveRegisterR(regCon, x"80", 0, trgCountSync);
       axiSlaveRegisterR(regCon, x"84", 0, trgToFrameDlySync);
