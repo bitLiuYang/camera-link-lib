@@ -2,4 +2,4 @@
 source -quiet $::env(RUCKUS_DIR)/vivado_proc.tcl
 
 # Load ruckus files
-loadRuckusTcl "$::DIR_PATH/CLink"
+loadSource -dir "$::DIR_PATH/CLink"
