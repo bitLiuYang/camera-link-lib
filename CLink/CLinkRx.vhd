@@ -45,7 +45,8 @@ port
     evrClk          : in    std_logic;
 
     -- GT Interface
-    rxClk           : in    std_logic;
+    rxClk           : in    std_logic; -- unused???
+    rxRst           : in    std_logic;
     rxData          : in    std_logic_vector(15 downto 0);
     rxCtrl          : in    std_logic_vector( 1 downto 0); 
     rxDecErr        : in    std_logic_vector( 1 downto 0); 

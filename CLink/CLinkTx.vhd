@@ -43,6 +43,7 @@ port
 
     -- GTP Interface
     txClk       : in    std_logic;
+    txRst       : in    std_logic; -- unused???
     txData      : out   std_logic_vector(15 downto 0);
     txCtrl      : out   std_logic_vector( 1 downto 0); 
 

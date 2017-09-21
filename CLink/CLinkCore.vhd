@@ -36,12 +36,14 @@ entity CLinkCore is
    port (
       -- RX Interface (rxClk domain)
       rxClk           : in  sl;
+      rxRst           : in  sl;
       rxData          : in  slv(15 downto 0);
       rxCtrl          : in  slv(1 downto 0);
       rxDecErr        : in  slv(1 downto 0);
       rxDispErr       : in  slv(1 downto 0);
       -- TX Interface (txClk domain)
       txClk           : in  sl;
+      txRst           : in  sl;
       txData          : out slv(15 downto 0);
       txCtrl          : out slv(1 downto 0);
       -- DMA Interface (sysClk domain)
@@ -153,6 +155,7 @@ begin
          sysRst          => sysRst,
          -- GT Interface (txClk domain)      
          txClk           => txClk,
+         txRst           => txRst,
          txData          => txData,
          txCtrl          => txCtrl,
          -- EVR Interface (evrClk domain)
@@ -179,6 +182,7 @@ begin
          sysRst          => sysRst,
          -- GT Interface (rxClk domain)
          rxClk           => rxClk,
+         rxRst           => rxRst,
          rxData          => rxData,
          rxCtrl          => rxCtrl,
          rxDecErr        => rxDecErr,

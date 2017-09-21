@@ -36,6 +36,7 @@ entity CLinkRxWrapper is
       sysRst          : in  sl;
       -- GT Interface (rxClk domain)
       rxClk           : in  sl;
+      rxRst           : in  sl;
       rxData          : in  slv(15 downto 0);
       rxCtrl          : in  slv(1 downto 0);
       rxDecErr        : in  slv(1 downto 0);
@@ -103,7 +104,7 @@ begin
    U_CLinkRx : entity work.CLinkRx
       generic map (
          TPD_G          => TPD_G,
-         CLK_RATE_INT_G => ite(DEFAULT_CLINK_G, 250000000, 125000000),
+         CLK_RATE_INT_G => ite(DEFAULT_CLINK_G, 125000000, 62500000),
          LANE_G         => LANE_G)
       port map (
          -- System Clock and Reset
@@ -111,6 +112,7 @@ begin
          pciClk              => sysClk,
          -- GT Interface (rxClk domain)
          rxClk               => rxClk,
+         rxRst               => rxRst,
          rxData              => rxData,
          rxCtrl              => rxCtrl,
          rxDecErr            => rxDecErr,

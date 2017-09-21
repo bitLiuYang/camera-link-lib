@@ -37,6 +37,7 @@ entity CLinkTxWrapper is
       sysRst          : in  sl;
       -- GT Interface (txClk domain)      
       txClk           : in  sl;
+      txRst           : in  sl;
       txData          : out slv(15 downto 0);
       txCtrl          : out slv(1 downto 0);
       -- EVR Interface (evrClk domain)
@@ -111,7 +112,7 @@ begin
    U_CLinkTx : entity work.CLinkTx
       generic map (
          TPD_G          => TPD_G,
-         CLK_RATE_INT_G => ite(DEFAULT_CLINK_G, 250000000, 125000000),
+         CLK_RATE_INT_G => ite(DEFAULT_CLINK_G, 125000000, 62500000),
          LANE_G         => LANE_G)
       port map (
          -- System Clock and Reset
@@ -119,6 +120,7 @@ begin
          pciClk               => sysClk,
          -- GT Interface (txClk domain)
          txClk                => txClk,
+         txRst                => txRst,
          txData               => txData,
          txCtrl               => txCtrl,
          -- EVR Interface (evrClk)
