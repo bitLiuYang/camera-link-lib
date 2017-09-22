@@ -2,7 +2,7 @@
 -- File       : CLinkCore.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-05
--- Last update: 2017-09-21
+-- Last update: 2017-09-22
 -------------------------------------------------------------------------------
 -- Description: CLinkCore top-level
 -------------------------------------------------------------------------------
@@ -30,6 +30,7 @@ use work.CLinkPkg.all;
 entity CLinkCore is
    generic (
       TPD_G            : time                 := 1 ns;
+      SYS_CLK_FREQ_G   : real                 := 125.0E+6;
       DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
       LANE_G           : integer range 0 to 7 := 0;
       AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C;
@@ -169,6 +170,7 @@ begin
    U_Tx : entity work.CLinkTxWrapper
       generic map (
          TPD_G           => TPD_G,
+         SYS_CLK_FREQ_G  => SYS_CLK_FREQ_G,
          DEFAULT_CLINK_G => DEFAULT_CLINK_G,
          LANE_G          => LANE_G)
       port map (
@@ -194,6 +196,7 @@ begin
    U_Rx : entity work.CLinkRxWrapper
       generic map (
          TPD_G           => TPD_G,
+         SYS_CLK_FREQ_G  => SYS_CLK_FREQ_G,
          DEFAULT_CLINK_G => DEFAULT_CLINK_G,
          LANE_G          => LANE_G)
       port map (

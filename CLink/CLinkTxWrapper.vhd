@@ -2,7 +2,7 @@
 -- File       : CLinkTxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-19
--- Last update: 2017-09-21
+-- Last update: 2017-09-22
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -29,6 +29,7 @@ use work.CLinkPkg.all;
 entity CLinkTxWrapper is
    generic (
       TPD_G           : time                 := 1 ns;
+      SYS_CLK_FREQ_G  : real                 := 125.0E+6;
       DEFAULT_CLINK_G : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
       LANE_G          : integer range 0 to 7 := 0);
    port (
@@ -121,5 +122,19 @@ begin
          clk     => sysClk,
          dataIn  => txRst,
          dataOut => txStatus.txRst);
+
+   U_txClkFreq : entity work.SyncClockFreq
+      generic map (
+         TPD_G          => TPD_G,
+         REF_CLK_FREQ_G => SYS_CLK_FREQ_G,
+         REFRESH_RATE_G => 1.0,
+         CNT_WIDTH_G    => 32)
+      port map (
+         -- Frequency Measurement (locClk domain)
+         freqOut => txStatus.txClkFreq,
+         -- Clocks
+         clkIn   => txClk,
+         locClk  => sysClk,
+         refClk  => sysClk);
 
 end mapping;

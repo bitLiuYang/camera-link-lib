@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- File       : CLinkPkg.vhd
 -- Created    : 2017-08-22
--- Last update: 2017-09-21
+-- Last update: 2017-09-22
 -------------------------------------------------------------------------------
 -- Description: CLink Package
 -------------------------------------------------------------------------------
@@ -50,10 +50,13 @@ package CLinkPkg is
       trgToFrameDly : slv(31 downto 0);
       frameCount    : slv(31 downto 0);
       frameRate     : slv(31 downto 0);
+      rxClkFreq     : slv(31 downto 0);
+      evrClkFreq    : slv(31 downto 0);
    end record;
 
    type CLinkTxStatusType is record
-      txRst : sl;
+      txRst     : sl;
+      txClkFreq : slv(31 downto 0);
    end record;
 
 end package CLinkPkg;

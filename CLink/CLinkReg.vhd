@@ -2,7 +2,7 @@
 -- File       : CLinkReg.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-20
--- Last update: 2017-09-21
+-- Last update: 2017-09-22
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -64,7 +64,8 @@ begin
    --------------------- 
    -- AXI Lite Interface
    --------------------- 
-   comb : process (axilReadMaster, axilWriteMaster, r, rxStatus, sysRst) is
+   comb : process (axilReadMaster, axilWriteMaster, r, rxStatus, sysRst,
+                   txStatus) is
       variable v      : RegType;
       variable regCon : AxiLiteEndPointType;
    begin
@@ -79,21 +80,26 @@ begin
       axiSlaveRegister(regCon, x"04", 0, v.config.trgPolarity);
       axiSlaveRegister(regCon, x"08", 0, v.config.pack16);
       axiSlaveRegister(regCon, x"0C", 0, v.config.trgCC);
-      
+
       axiSlaveRegister(regCon, x"10", 0, v.config.numTrains);
       axiSlaveRegister(regCon, x"14", 0, v.config.numCycles);
       axiSlaveRegister(regCon, x"18", 0, v.config.serBaud);
 
       axiSlaveRegisterR(regCon, x"40", 0, rxStatus.rxRst);
       axiSlaveRegisterR(regCon, x"44", 0, rxStatus.evrRst);
-      axiSlaveRegisterR(regCon, x"48", 0, rxStatus.cLinkLock);
-      axiSlaveRegisterR(regCon, x"4C", 0, rxStatus.trgCount);
-      
-      axiSlaveRegisterR(regCon, x"50", 0, rxStatus.trgToFrameDly);
-      axiSlaveRegisterR(regCon, x"54", 0, rxStatus.frameCount);
-      axiSlaveRegisterR(regCon, x"58", 0, rxStatus.frameRate);
-      
+      axiSlaveRegisterR(regCon, x"48", 0, rxStatus.linkStatus);
+      axiSlaveRegisterR(regCon, x"4C", 0, rxStatus.cLinkLock);
+
+      axiSlaveRegisterR(regCon, x"50", 0, rxStatus.trgCount);
+      axiSlaveRegisterR(regCon, x"54", 0, rxStatus.trgToFrameDly);
+      axiSlaveRegisterR(regCon, x"58", 0, rxStatus.frameCount);
+      axiSlaveRegisterR(regCon, x"5C", 0, rxStatus.frameRate);
+
+      axiSlaveRegisterR(regCon, x"60", 0, rxStatus.rxClkFreq);
+      axiSlaveRegisterR(regCon, x"64", 0, rxStatus.evrClkFreq);
+
       axiSlaveRegisterR(regCon, x"80", 0, txStatus.txRst);
+      axiSlaveRegisterR(regCon, x"84", 0, txStatus.txClkFreq);
 
       axiSlaveRegisterR(regCon, x"FC", 0, ite(DEFAULT_CLINK_G, toSlv(1, 32), toSlv(0, 32)));
 
