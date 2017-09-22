@@ -112,7 +112,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))     
+            pollInterval = 1
+        )) 
 
         self.add(pr.RemoteVariable( 
             name         = "EvrRstStatus",
@@ -122,7 +123,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))       
+            pollInterval = 1
+        )) 
 
         self.add(pr.RemoteVariable( 
             name         = "LinkStatus",
@@ -132,7 +134,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))       
+            pollInterval = 1
+        ))  
 
         self.add(pr.RemoteVariable( 
             name         = "CLinkLock",
@@ -142,7 +145,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))   
+            pollInterval = 1
+        )) 
 
         self.add(pr.RemoteVariable( 
             name         = "TrgCount",
@@ -152,7 +156,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))           
+            pollInterval = 1
+        ))       
 
         self.add(pr.RemoteVariable( 
             name         = "TrgToFrameDly",
@@ -162,7 +167,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))    
+            pollInterval = 1
+        )) 
 
         self.add(pr.RemoteVariable( 
             name         = "FrameCount",
@@ -172,6 +178,7 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
+            pollInterval = 1
         )) 
 
         self.add(pr.RemoteVariable( 
@@ -182,7 +189,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
-        ))
+            pollInterval = 1
+        )) 
 
         self.add(pr.RemoteVariable( 
             name         = "RxClkFreq",
@@ -192,8 +200,10 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             units        = 'Hz',
             base         = pr.UInt,
+            disp         = '{:d}',
             mode         = "RO",
-        ))  
+            pollInterval = 1
+        )) 
 
         self.add(pr.RemoteVariable( 
             name         = "EvrClkFreq",
@@ -203,8 +213,10 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             units        = 'Hz',
             base         = pr.UInt,
+            disp         = '{:d}',
             mode         = "RO",
-        ))          
+            pollInterval = 1
+        ))   
         
         self.add(pr.RemoteVariable( 
             name         = "TxRstStatus",
@@ -214,6 +226,7 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             mode         = "RO",
+            pollInterval = 1
         )) 
 
         self.add(pr.RemoteVariable( 
@@ -224,6 +237,8 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             units        = 'Hz',
             base         = pr.UInt,
+            disp         = '{:d}',
             mode         = "RO",
+            pollInterval = 1
         ))         
         
