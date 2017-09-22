@@ -2,7 +2,7 @@
 -- File       : CLinkRxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-19
--- Last update: 2017-09-20
+-- Last update: 2017-09-21
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -23,65 +23,40 @@ use ieee.std_logic_unsigned.all;
 use work.StdRtlPkg.all;
 use work.AxiStreamPkg.all;
 use work.AxiLitePkg.all;
+use work.CLinkPkg.all;
 
 entity CLinkRxWrapper is
    generic (
-      TPD_G            : time                 := 1 ns;
-      DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
-      LANE_G           : integer range 0 to 7 := 0;
-      AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C);
+      TPD_G           : time                 := 1 ns;
+      DEFAULT_CLINK_G : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
+      LANE_G          : integer range 0 to 7 := 0);
    port (
       -- System Interface
-      sysClk          : in  sl;
-      sysRst          : in  sl;
+      sysClk        : in  sl;
+      sysRst        : in  sl;
       -- GT Interface (rxClk domain)
-      rxClk           : in  sl;
-      rxRst           : in  sl;
-      rxData          : in  slv(15 downto 0);
-      rxCtrl          : in  slv(1 downto 0);
-      rxDecErr        : in  slv(1 downto 0);
-      rxDispErr       : in  slv(1 downto 0);
+      rxClk         : in  sl;
+      rxRst         : in  sl;
+      rxData        : in  slv(15 downto 0);
+      rxCtrl        : in  slv(1 downto 0);
+      rxDecErr      : in  slv(1 downto 0);
+      rxDispErr     : in  slv(1 downto 0);
       -- EVR Interface (evrClk domain)
-      evrClk          : in  sl;
-      evrTrig         : in  sl;
-      evrTimeStamp    : in  slv(63 downto 0);
+      evrClk        : in  sl;
+      evrRst        : in  sl;
+      evrTrig       : in  sl;
+      evrTimeStamp  : in  slv(63 downto 0);
       -- DMA Interfaces (sysClk domain)
-      camDataMaster   : out AxiStreamMasterType;
-      camDataSlave    : in  AxiStreamSlaveType;
-      serTxMaster     : out AxiStreamMasterType;
-      serTxSlave      : in  AxiStreamSlaveType;
-      -- AXI-Lite Register Interface (sysClk domain)
-      axilReadMaster  : in  AxiLiteReadMasterType;
-      axilReadSlave   : out AxiLiteReadSlaveType;
-      axilWriteMaster : in  AxiLiteWriteMasterType;
-      axilWriteSlave  : out AxiLiteWriteSlaveType);
+      camDataMaster : out AxiStreamMasterType;
+      camDataSlave  : in  AxiStreamSlaveType;
+      serTxMaster   : out AxiStreamMasterType;
+      serTxSlave    : in  AxiStreamSlaveType;
+      -- Configuration and Status (sysClk domain)
+      rxStatus      : out CLinkRxStatusType;
+      config        : in  CLinkConfigType);
 end CLinkRxWrapper;
 
 architecture rtl of CLinkRxWrapper is
-
-   type RegType is record
-      pack16         : sl;
-      trgPolarity    : sl;
-      enable         : sl;
-      numTrains      : slv(31 downto 0);
-      numCycles      : slv(31 downto 0);
-      serBaud        : slv(31 downto 0);
-      axilReadSlave  : AxiLiteReadSlaveType;
-      axilWriteSlave : AxiLiteWriteSlaveType;
-   end record;
-
-   constant REG_INIT_C : RegType := (
-      pack16         => '0',
-      trgPolarity    => '0',
-      enable         => '0',
-      numTrains      => toSlv(512, 32),
-      numCycles      => toSlv(1536, 32),
-      serBaud        => toSlv(57600, 32),
-      axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C,
-      axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C);
-
-   signal r   : RegType := REG_INIT_C;
-   signal rin : RegType;
 
    signal master : AxiStreamMasterType := AXI_STREAM_MASTER_INIT_C;
 
@@ -91,13 +66,6 @@ architecture rtl of CLinkRxWrapper is
    signal trgToFrameDly : slv(31 downto 0);
    signal frameCount    : slv(31 downto 0);
    signal frameRate     : slv(31 downto 0);
-
-   signal linkStatusSync    : sl;
-   signal cLinkLockSync     : sl;
-   signal trgCountSync      : slv(31 downto 0);
-   signal trgToFrameDlySync : slv(31 downto 0);
-   signal frameCountSync    : slv(31 downto 0);
-   signal frameRateSync     : slv(31 downto 0);
 
 begin
 
@@ -119,16 +87,17 @@ begin
          rxDispErr           => rxDispErr,
          -- EVR Interface (evrClk)
          evrClk              => evrClk,
+         evrRst              => evrRst,
          evrToCl_trigger     => evrTrig,
          evrToCl_seconds     => evrTimeStamp(63 downto 32),
          evrToCl_nanosec     => evrTimeStamp(31 downto 0),
          -- Control (sysClk domain)
-         pciToCl_pack16      => r.pack16,
-         pciToCl_trgPolarity => r.trgPolarity,
-         pciToCl_enable      => r.enable,
-         pciToCl_numTrains   => r.numTrains,
-         pciToCl_numCycles   => r.numCycles,
-         pciToCl_serBaud     => r.serBaud,
+         pciToCl_pack16      => config.pack16,
+         pciToCl_trgPolarity => config.trgPolarity,
+         pciToCl_enable      => config.enable,
+         pciToCl_numTrains   => config.numTrains,
+         pciToCl_numCycles   => config.numCycles,
+         pciToCl_serBaud     => config.serBaud,
          pciToCl_SerFifoRdEn => serTxSlave.tReady,
          -- Status  (rxClk domain)
          linkStatus          => linkStatus,
@@ -151,17 +120,29 @@ begin
    master.tStrb <= x"0001";             -- 1 byte at a time
    serTxMaster  <= master;
 
+   Sync_rxRst : entity work.Synchronizer
+      port map (
+         clk     => sysClk,
+         dataIn  => rxRst,
+         dataOut => rxStatus.rxRst);
+
+   Sync_evrRst : entity work.Synchronizer
+      port map (
+         clk     => sysClk,
+         dataIn  => evrRst,
+         dataOut => rxStatus.evrRst);
+
    Sync_linkStatus : entity work.Synchronizer
       port map (
          clk     => sysClk,
          dataIn  => linkStatus,
-         dataOut => linkStatusSync);
+         dataOut => rxStatus.linkStatus);
 
    Sync_cLinkLock : entity work.Synchronizer
       port map (
          clk     => sysClk,
          dataIn  => cLinkLock,
-         dataOut => cLinkLockSync);
+         dataOut => rxStatus.cLinkLock);
 
    Sync_trgCount : entity work.SynchronizerFifo
       generic map(
@@ -170,7 +151,7 @@ begin
          wr_clk => rxClk,
          din    => trgCount,
          rd_clk => sysClk,
-         dout   => trgCountSync);
+         dout   => rxStatus.trgCount);
 
    Sync_trgToFrameDly : entity work.SynchronizerFifo
       generic map(
@@ -179,7 +160,7 @@ begin
          wr_clk => rxClk,
          din    => trgToFrameDly,
          rd_clk => sysClk,
-         dout   => trgToFrameDlySync);
+         dout   => rxStatus.trgToFrameDly);
 
    Sync_frameCount : entity work.SynchronizerFifo
       generic map(
@@ -188,7 +169,7 @@ begin
          wr_clk => rxClk,
          din    => frameCount,
          rd_clk => sysClk,
-         dout   => frameCountSync);
+         dout   => rxStatus.frameCount);
 
    Sync_frameRate : entity work.SynchronizerFifo
       generic map(
@@ -197,62 +178,6 @@ begin
          wr_clk => rxClk,
          din    => frameRate,
          rd_clk => sysClk,
-         dout   => frameRateSync);
-
-   --------------------- 
-   -- AXI Lite Interface
-   --------------------- 
-   comb : process (axilReadMaster, axilWriteMaster, cLinkLockSync,
-                   frameCountSync, frameRateSync, linkStatusSync, r, sysRst,
-                   trgCountSync, trgToFrameDlySync) is
-      variable v      : RegType;
-      variable regCon : AxiLiteEndPointType;
-   begin
-      -- Latch the current value
-      v := r;
-
-      -- Determine the transaction type
-      axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
-
-      -- Map the read registers
-      axiSlaveRegister(regCon, x"00", 0, v.numTrains);
-      axiSlaveRegister(regCon, x"04", 0, v.numCycles);
-      axiSlaveRegister(regCon, x"08", 0, v.serBaud);
-
-      axiSlaveRegister(regCon, x"10", 0, v.enable);
-      axiSlaveRegister(regCon, x"10", 1, v.pack16);
-      axiSlaveRegister(regCon, x"10", 2, v.trgPolarity);
-
-      axiSlaveRegisterR(regCon, x"80", 0, trgCountSync);
-      axiSlaveRegisterR(regCon, x"84", 0, trgToFrameDlySync);
-      axiSlaveRegisterR(regCon, x"88", 0, frameCountSync);
-      axiSlaveRegisterR(regCon, x"8C", 0, frameRateSync);
-
-      axiSlaveRegisterR(regCon, x"90", 0, linkStatusSync);
-      axiSlaveRegisterR(regCon, x"90", 1, cLinkLockSync);
-
-      -- Closeout the transaction
-      axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXI_ERROR_RESP_G);
-
-      -- Synchronous Reset
-      if (sysRst = '1') then
-         v := REG_INIT_C;
-      end if;
-
-      -- Register the variable for next clock cycle
-      rin <= v;
-
-      -- Outputs
-      axilWriteSlave <= r.axilWriteSlave;
-      axilReadSlave  <= r.axilReadSlave;
-
-   end process comb;
-
-   seq : process (sysClk) is
-   begin
-      if (rising_edge(sysClk)) then
-         r <= rin after TPD_G;
-      end if;
-   end process seq;
+         dout   => rxStatus.frameRate);
 
 end rtl;

@@ -40,6 +40,7 @@ port
     systemReset : in    std_logic;
     pciClk      : in    std_logic;
     evrClk      : in    std_logic;
+    evrRst      : in    std_logic; -- unused???
 
     -- GTP Interface
     txClk       : in    std_logic;

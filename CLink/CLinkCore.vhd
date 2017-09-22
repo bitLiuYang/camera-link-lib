@@ -2,7 +2,7 @@
 -- File       : CLinkCore.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-05
--- Last update: 2017-09-20
+-- Last update: 2017-09-21
 -------------------------------------------------------------------------------
 -- Description: CLinkCore top-level
 -------------------------------------------------------------------------------
@@ -25,6 +25,7 @@ use work.AxiLitePkg.all;
 use work.AxiStreamPkg.all;
 use work.TimingPkg.all;
 use work.SsiPkg.all;
+use work.CLinkPkg.all;
 
 entity CLinkCore is
    generic (
@@ -66,13 +67,12 @@ end CLinkCore;
 
 architecture mapping of CLinkCore is
 
-   constant NUM_AXI_MASTERS_C : natural := 3;
+   constant NUM_AXI_MASTERS_C : natural := 2;
 
    constant TRIG_INDEX_C : natural := 0;
-   constant TX_INDEX_C   : natural := 1;
-   constant RX_INDEX_C   : natural := 2;
+   constant REG_INDEX_C  : natural := 1;
 
-   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 15, 12);
+   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 13, 12);
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXI_MASTERS_C-1 downto 0);
@@ -91,6 +91,11 @@ architecture mapping of CLinkCore is
 
    signal evrTrig      : sl;
    signal evrTimeStamp : slv(63 downto 0);
+
+   signal rxStatus : CLinkRxStatusType;
+   signal txStatus : CLinkTxStatusType;
+   signal config   : CLinkConfigType;
+
 
 begin
 
@@ -143,64 +148,78 @@ begin
          bsa_o           => open,
          dmod_o          => open);
 
-   U_Tx : entity work.CLinkTxWrapper
+   U_Reg : entity work.CLinkReg
       generic map (
          TPD_G            => TPD_G,
          DEFAULT_CLINK_G  => DEFAULT_CLINK_G,
-         LANE_G           => LANE_G,
          AXI_ERROR_RESP_G => AXI_ERROR_RESP_G)
       port map (
-         -- System Interface
+         -- Configuration and Status (sysClk domain)
+         rxStatus        => rxStatus,
+         txStatus        => txStatus,
+         config          => config,
+         -- AXI Lite interface
          sysClk          => sysClk,
          sysRst          => sysRst,
+         axilReadMaster  => axilReadMasters(REG_INDEX_C),
+         axilReadSlave   => axilReadSlaves(REG_INDEX_C),
+         axilWriteMaster => axilWriteMasters(REG_INDEX_C),
+         axilWriteSlave  => axilWriteSlaves(REG_INDEX_C));
+
+   U_Tx : entity work.CLinkTxWrapper
+      generic map (
+         TPD_G           => TPD_G,
+         DEFAULT_CLINK_G => DEFAULT_CLINK_G,
+         LANE_G          => LANE_G)
+      port map (
+         -- System Interface
+         sysClk      => sysClk,
+         sysRst      => sysRst,
          -- GT Interface (txClk domain)      
-         txClk           => txClk,
-         txRst           => txRst,
-         txData          => txData,
-         txCtrl          => txCtrl,
+         txClk       => txClk,
+         txRst       => txRst,
+         txData      => txData,
+         txCtrl      => txCtrl,
          -- EVR Interface (evrClk domain)
-         evrClk          => evrClk,
-         evrTrig         => evrTrig,
+         evrClk      => evrClk,
+         evrRst      => evrRst,
+         evrTrig     => evrTrig,
          -- DMA Interface (sysClk domain)
-         serRxMaster     => dmaObMaster,
-         serRxSlave      => dmaObSlave,
-         -- AXI-Lite Register Interface (sysClk domain)
-         axilReadMaster  => axilReadMasters(TX_INDEX_C),
-         axilReadSlave   => axilReadSlaves(TX_INDEX_C),
-         axilWriteMaster => axilWriteMasters(TX_INDEX_C),
-         axilWriteSlave  => axilWriteSlaves(TX_INDEX_C));
+         serRxMaster => dmaObMaster,
+         serRxSlave  => dmaObSlave,
+         -- Configuration and Status (sysClk domain)
+         txStatus    => txStatus,
+         config      => config);
 
    U_Rx : entity work.CLinkRxWrapper
       generic map (
-         TPD_G            => TPD_G,
-         DEFAULT_CLINK_G  => DEFAULT_CLINK_G,
-         LANE_G           => LANE_G,
-         AXI_ERROR_RESP_G => AXI_ERROR_RESP_G)
+         TPD_G           => TPD_G,
+         DEFAULT_CLINK_G => DEFAULT_CLINK_G,
+         LANE_G          => LANE_G)
       port map (
          -- System Interface
-         sysClk          => sysClk,
-         sysRst          => sysRst,
+         sysClk        => sysClk,
+         sysRst        => sysRst,
          -- GT Interface (rxClk domain)
-         rxClk           => rxClk,
-         rxRst           => rxRst,
-         rxData          => rxData,
-         rxCtrl          => rxCtrl,
-         rxDecErr        => rxDecErr,
-         rxDispErr       => rxDispErr,
+         rxClk         => rxClk,
+         rxRst         => rxRst,
+         rxData        => rxData,
+         rxCtrl        => rxCtrl,
+         rxDecErr      => rxDecErr,
+         rxDispErr     => rxDispErr,
          -- EVR Interface (evrClk domain)
-         evrClk          => evrClk,
-         evrTrig         => evrTrig,
-         evrTimeStamp    => evrTimeStamp,
+         evrClk        => evrClk,
+         evrRst        => evrRst,
+         evrTrig       => evrTrig,
+         evrTimeStamp  => evrTimeStamp,
          -- DMA Interfaces (sysClk domain)
-         serTxMaster     => dmaIbMasters(0),
-         serTxSlave      => dmaIbSlaves(0),
-         camDataMaster   => dmaIbMasters(1),
-         camDataSlave    => dmaIbSlaves(1),
-         -- AXI-Lite Register Interface (sysClk domain)
-         axilReadMaster  => axilReadMasters(RX_INDEX_C),
-         axilReadSlave   => axilReadSlaves(RX_INDEX_C),
-         axilWriteMaster => axilWriteMasters(RX_INDEX_C),
-         axilWriteSlave  => axilWriteSlaves(RX_INDEX_C));
+         serTxMaster   => dmaIbMasters(0),
+         serTxSlave    => dmaIbSlaves(0),
+         camDataMaster => dmaIbMasters(1),
+         camDataSlave  => dmaIbSlaves(1),
+         -- Configuration and Status (sysClk domain)
+         rxStatus      => rxStatus,
+         config        => config);
 
    U_IbFifo : entity work.AxiStreamFifoV2
       generic map (

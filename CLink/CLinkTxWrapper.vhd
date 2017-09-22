@@ -2,7 +2,7 @@
 -- File       : CLinkTxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-19
--- Last update: 2017-09-20
+-- Last update: 2017-09-21
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -24,56 +24,35 @@ use work.StdRtlPkg.all;
 use work.AxiStreamPkg.all;
 use work.AxiLitePkg.all;
 use work.SsiPkg.all;
+use work.CLinkPkg.all;
 
 entity CLinkTxWrapper is
    generic (
-      TPD_G            : time                 := 1 ns;
-      DEFAULT_CLINK_G  : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
-      LANE_G           : integer range 0 to 7 := 0;
-      AXI_ERROR_RESP_G : slv(1 downto 0)      := AXI_RESP_DECERR_C);
+      TPD_G           : time                 := 1 ns;
+      DEFAULT_CLINK_G : boolean              := true;  -- false = 1.25Gb/s, true = 2.5Gb/s
+      LANE_G          : integer range 0 to 7 := 0);
    port (
       -- System Interface
-      sysClk          : in  sl;
-      sysRst          : in  sl;
+      sysClk      : in  sl;
+      sysRst      : in  sl;
       -- GT Interface (txClk domain)      
-      txClk           : in  sl;
-      txRst           : in  sl;
-      txData          : out slv(15 downto 0);
-      txCtrl          : out slv(1 downto 0);
+      txClk       : in  sl;
+      txRst       : in  sl;
+      txData      : out slv(15 downto 0);
+      txCtrl      : out slv(1 downto 0);
       -- EVR Interface (evrClk domain)
-      evrClk          : in  sl;
-      evrTrig         : in  sl;
+      evrClk      : in  sl;
+      evrRst      : in  sl;
+      evrTrig     : in  sl;
       -- DMA Interface (sysClk domain)
-      serRxMaster     : in  AxiStreamMasterType;
-      serRxSlave      : out AxiStreamSlaveType;
-      -- AXI-Lite Register Interface (sysClk domain)
-      axilReadMaster  : in  AxiLiteReadMasterType;
-      axilReadSlave   : out AxiLiteReadSlaveType;
-      axilWriteMaster : in  AxiLiteWriteMasterType;
-      axilWriteSlave  : out AxiLiteWriteSlaveType);
+      serRxMaster : in  AxiStreamMasterType;
+      serRxSlave  : out AxiStreamSlaveType;
+      -- Configuration and Status (sysClk domain)
+      txStatus    : out CLinkTxStatusType;
+      config      : in  CLinkConfigType);
 end CLinkTxWrapper;
 
-architecture rtl of CLinkTxWrapper is
-
-   type RegType is record
-      pack16         : sl;
-      trgPolarity    : sl;
-      trgCC          : slv(1 downto 0);
-      serBaud        : slv(31 downto 0);
-      axilReadSlave  : AxiLiteReadSlaveType;
-      axilWriteSlave : AxiLiteWriteSlaveType;
-   end record;
-
-   constant REG_INIT_C : RegType := (
-      pack16         => '0',
-      trgPolarity    => '0',
-      trgCC          => (others => '0'),
-      serBaud        => toSlv(57600, 32),
-      axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C,
-      axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C);
-
-   signal r   : RegType := REG_INIT_C;
-   signal rin : RegType;
+architecture mapping of CLinkTxWrapper is
 
    signal master : AxiStreamMasterType;
    signal slave  : AxiStreamSlaveType;
@@ -125,59 +104,22 @@ begin
          txCtrl               => txCtrl,
          -- EVR Interface (evrClk)
          evrClk               => evrClk,
+         evrRst               => evrRst,
          evrToCl_trigger      => evrTrig,
          -- Control (sysClk domain)
-         pciToCl_pack16       => r.pack16,
-         pciToCl_trgPolarity  => r.trgPolarity,
-         pciToCl_trgCC        => r.trgCC,
-         pciToCl_serBaud      => r.serBaud,
+         pciToCl_pack16       => config.pack16,
+         pciToCl_trgPolarity  => config.trgPolarity,
+         pciToCl_trgCC        => config.trgCC,
+         pciToCl_serBaud      => config.serBaud,
          -- Serial RX  (sysClk domain)
          pciToCl_serFifoWrEn  => master.tValid,
          pciToCl_serFifoWr    => master.tData(7 downto 0),
          clToPci_serFifoAFull => slave.tReady);
 
-   --------------------- 
-   -- AXI Lite Interface
-   --------------------- 
-   comb : process (axilReadMaster, axilWriteMaster, r, sysRst) is
-      variable v      : RegType;
-      variable regCon : AxiLiteEndPointType;
-   begin
-      -- Latch the current value
-      v := r;
+   Sync_txRst : entity work.Synchronizer
+      port map (
+         clk     => sysClk,
+         dataIn  => txRst,
+         dataOut => txStatus.txRst);
 
-      -- Determine the transaction type
-      axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
-
-      -- Map the read registers
-      axiSlaveRegister(regCon, x"00", 0, v.trgCC);
-      axiSlaveRegister(regCon, x"04", 0, v.serBaud);
-
-      axiSlaveRegister(regCon, x"10", 1, v.pack16);
-      axiSlaveRegister(regCon, x"10", 2, v.trgPolarity);
-
-      -- Closeout the transaction
-      axiSlaveDefault(regCon, v.axilWriteSlave, v.axilReadSlave, AXI_ERROR_RESP_G);
-
-      -- Synchronous Reset
-      if (sysRst = '1') then
-         v := REG_INIT_C;
-      end if;
-
-      -- Register the variable for next clock cycle
-      rin <= v;
-
-      -- Outputs
-      axilWriteSlave <= r.axilWriteSlave;
-      axilReadSlave  <= r.axilReadSlave;
-
-   end process comb;
-
-   seq : process (sysClk) is
-   begin
-      if (rising_edge(sysClk)) then
-         r <= rin after TPD_G;
-      end if;
-   end process seq;
-
-end rtl;
+end mapping;
