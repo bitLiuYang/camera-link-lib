@@ -70,8 +70,8 @@ architecture mapping of CLinkCore is
 
    constant NUM_AXI_MASTERS_C : natural := 2;
 
-   constant TRIG_INDEX_C : natural := 0;
-   constant REG_INDEX_C  : natural := 1;
+   constant REG_INDEX_C  : natural := 0;
+   constant TRIG_INDEX_C : natural := 1;
 
    constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 13, 12);
 

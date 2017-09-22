@@ -18,13 +18,8 @@
 #-----------------------------------------------------------------------------
 
 import pyrogue as pr
-import pyrogue.simulation
-import rogue.hardware.data
 
-from DataLib.DataDev import *
-from CameraLinkLib.Clink import *
-from LclsTimingCore.TimingFrameRx import *
-from surf.xilinx import *
+from LclsTimingCore.LclsTriggerPulse import *
 
 class ClinkCore(pr.Device):
     def __init__(   self,       
@@ -32,6 +27,12 @@ class ClinkCore(pr.Device):
             description = "ClinkCore",
             **kwargs):
         super().__init__(name=name, description=description, **kwargs)
+        
+        self.add(LclsTriggerPulse(
+            name   = 'Trigger', 
+            offset = 0x1000,
+            expand = False,
+        ))            
         
         self.add(pr.RemoteVariable( 
             name         = "CLinkEnable",
