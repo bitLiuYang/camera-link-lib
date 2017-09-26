@@ -103,6 +103,36 @@ class ClinkCore(pr.Device):
             base         = pr.UInt,
             mode         = "RW",
         ))   
+        
+        self.add(pr.RemoteVariable( 
+            name         = "GtLoopback",
+            description  = "GtLoopback",
+            offset       = 0x1C,
+            bitSize      = 3,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            mode         = "RW",
+        ))           
+        
+        self.add(pr.RemoteCommand(  
+            name         = "RxUserRst",
+            description  = "RxUserRst",
+            offset       = 0x20,
+            bitSize      = 1,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            function     = pr.BaseCommand.createTouch(0x1)
+        ))      
+
+        self.add(pr.RemoteCommand(  
+            name         = "TxUserRst",
+            description  = "TxUserRst",
+            offset       = 0x24,
+            bitSize      = 1,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            function     = pr.BaseCommand.createTouch(0x1)
+        ))              
 
         self.add(pr.RemoteVariable( 
             name         = "RxRstStatus",
