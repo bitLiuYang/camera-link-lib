@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- File       : CLinkPkg.vhd
 -- Created    : 2017-08-22
--- Last update: 2017-09-22
+-- Last update: 2017-09-25
 -------------------------------------------------------------------------------
 -- Description: CLink Package
 -------------------------------------------------------------------------------
@@ -24,6 +24,9 @@ package CLinkPkg is
    constant IDLE_STRING_C : slv(495 downto 0) := x"45524242524120474D45524120464E4B4C4941204552414D20435259544F5241424F4C415220544F52414C45434541434C204E41494F4154204E4143534C";
 
    type CLinkConfigType is record
+      rxUserRst   : sl;
+      txUserRst   : sl;
+      loopback    : slv(2 downto 0);
       enable      : sl;
       trgPolarity : sl;
       pack16      : sl;
@@ -33,6 +36,9 @@ package CLinkPkg is
       serBaud     : slv(31 downto 0);
    end record;
    constant CLINK_CONFIG_INIT_C : CLinkConfigType := (
+      rxUserRst   => '0',
+      txUserRst   => '0',
+      loopback    => "000",
       enable      => '0',
       trgPolarity => '0',
       pack16      => '0',
@@ -55,8 +61,9 @@ package CLinkPkg is
    end record;
 
    type CLinkTxStatusType is record
-      txRst     : sl;
-      txClkFreq : slv(31 downto 0);
+      txRst       : sl;
+      txClkFreq   : slv(31 downto 0);
+      evrTrigRate : slv(31 downto 0);
    end record;
 
 end package CLinkPkg;

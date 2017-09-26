@@ -2,7 +2,7 @@
 -- File       : CLinkCore.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-05
--- Last update: 2017-09-22
+-- Last update: 2017-09-25
 -------------------------------------------------------------------------------
 -- Description: CLinkCore top-level
 -------------------------------------------------------------------------------
@@ -37,17 +37,20 @@ entity CLinkCore is
       AXI_BASE_ADDR_G  : slv(31 downto 0)     := (others => '0'));
    port (
       -- RX Interface (rxClk domain)
+      rxUserRst       : out sl;
       rxClk           : in  sl;
       rxRst           : in  sl;
       rxData          : in  slv(15 downto 0);
-      rxCtrl          : in  slv(1 downto 0);
+      rxDataK         : in  slv(1 downto 0);
       rxDecErr        : in  slv(1 downto 0);
       rxDispErr       : in  slv(1 downto 0);
       -- TX Interface (txClk domain)
+      txUserRst       : out sl;
       txClk           : in  sl;
       txRst           : in  sl;
       txData          : out slv(15 downto 0);
-      txCtrl          : out slv(1 downto 0);
+      txDataK         : out slv(1 downto 0);
+      loopback        : out slv(2 downto 0);
       -- DMA Interface (sysClk domain)
       dmaObMaster     : in  AxiStreamMasterType;
       dmaObSlave      : out AxiStreamSlaveType;
@@ -159,6 +162,9 @@ begin
          rxStatus        => rxStatus,
          txStatus        => txStatus,
          config          => config,
+         rxUserRst       => rxUserRst,
+         txUserRst       => txUserRst,
+         loopback        => loopback,
          -- AXI Lite interface
          sysClk          => sysClk,
          sysRst          => sysRst,
@@ -181,7 +187,7 @@ begin
          txClk       => txClk,
          txRst       => txRst,
          txData      => txData,
-         txCtrl      => txCtrl,
+         txDataK     => txDataK,
          -- EVR Interface (evrClk domain)
          evrClk      => evrClk,
          evrRst      => evrRst,
@@ -207,7 +213,7 @@ begin
          rxClk         => rxClk,
          rxRst         => rxRst,
          rxData        => rxData,
-         rxCtrl        => rxCtrl,
+         rxDataK       => rxDataK,
          rxDecErr      => rxDecErr,
          rxDispErr     => rxDispErr,
          -- EVR Interface (evrClk domain)

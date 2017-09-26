@@ -240,5 +240,19 @@ class ClinkCore(pr.Device):
             disp         = '{:d}',
             mode         = "RO",
             pollInterval = 1
-        ))         
+        ))  
+
+        self.add(pr.RemoteVariable( 
+            name         = "EvrTrigRate",
+            description  = "EvrTrigRate",
+            offset       = 0x88,
+            bitSize      = 32,
+            bitOffset    = 0,
+            units        = 'Hz',
+            base         = pr.UInt,
+            disp         = '{:d}',
+            mode         = "RO",
+            pollInterval = 1
+        ))
+        
         

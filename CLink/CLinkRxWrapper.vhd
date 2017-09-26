@@ -2,7 +2,7 @@
 -- File       : CLinkRxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-19
--- Last update: 2017-09-22
+-- Last update: 2017-09-25
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ entity CLinkRxWrapper is
       rxClk         : in  sl;
       rxRst         : in  sl;
       rxData        : in  slv(15 downto 0);
-      rxCtrl        : in  slv(1 downto 0);
+      rxDataK       : in  slv(1 downto 0);
       rxDecErr      : in  slv(1 downto 0);
       rxDispErr     : in  slv(1 downto 0);
       -- EVR Interface (evrClk domain)
@@ -83,7 +83,7 @@ begin
          rxClk               => rxClk,
          rxRst               => rxRst,
          rxData              => rxData,
-         rxCtrl              => rxCtrl,
+         rxCtrl              => rxDataK,
          rxDecErr            => rxDecErr,
          rxDispErr           => rxDispErr,
          -- EVR Interface (evrClk)

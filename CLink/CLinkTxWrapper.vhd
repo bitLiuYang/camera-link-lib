@@ -2,7 +2,7 @@
 -- File       : CLinkTxWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-19
--- Last update: 2017-09-22
+-- Last update: 2017-09-25
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ entity CLinkTxWrapper is
       txClk       : in  sl;
       txRst       : in  sl;
       txData      : out slv(15 downto 0);
-      txCtrl      : out slv(1 downto 0);
+      txDataK     : out slv(1 downto 0);
       -- EVR Interface (evrClk domain)
       evrClk      : in  sl;
       evrRst      : in  sl;
@@ -57,6 +57,8 @@ architecture mapping of CLinkTxWrapper is
 
    signal master : AxiStreamMasterType;
    signal slave  : AxiStreamSlaveType;
+
+   signal evrTrigRate : slv(31 downto 0);
 
 begin
 
@@ -102,7 +104,7 @@ begin
          txClk                => txClk,
          txRst                => txRst,
          txData               => txData,
-         txCtrl               => txCtrl,
+         txCtrl               => txDataK,
          -- EVR Interface (evrClk)
          evrClk               => evrClk,
          evrRst               => evrRst,
@@ -136,5 +138,30 @@ begin
          clkIn   => txClk,
          locClk  => sysClk,
          refClk  => sysClk);
+
+   U_TrigRate : entity work.SyncTrigRate
+      generic map (
+         TPD_G          => TPD_G,
+         REF_CLK_FREQ_G => SYS_CLK_FREQ_G,
+         CNT_WIDTH_G    => 32)
+      port map (
+         -- Trigger Input (locClk domain)
+         trigIn      => evrTrig,
+         -- Trigger Rate Output (locClk domain)
+         trigRateOut => evrTrigRate,
+         -- Clocks
+         locClk      => evrClk,
+         locRst      => evrRst,
+         refClk      => sysClk,
+         refRst      => sysRst);
+
+   Sync_evrTrigRate : entity work.SynchronizerFifo
+      generic map(
+         DATA_WIDTH_G => 32)
+      port map(
+         wr_clk => evrClk,
+         din    => evrTrigRate,
+         rd_clk => sysClk,
+         dout   => txStatus.evrTrigRate);
 
 end mapping;

@@ -2,7 +2,7 @@
 -- File       : CLinkReg.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-20
--- Last update: 2017-09-22
+-- Last update: 2017-09-25
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -34,6 +34,9 @@ entity CLinkReg is
       rxStatus        : in  CLinkRxStatusType;
       txStatus        : in  CLinkTxStatusType;
       config          : out CLinkConfigType;
+      rxUserRst       : out sl;
+      txUserRst       : out sl;
+      loopback        : out slv(2 downto 0);
       -- AXI-Lite Register Interface (sysClk domain)
       sysClk          : in  sl;
       sysRst          : in  sl;
@@ -72,6 +75,10 @@ begin
       -- Latch the current value
       v := r;
 
+      -- Reset the strobes
+      v.config.rxUserRst := '0';
+      v.config.txUserRst := '0';
+
       -- Determine the transaction type
       axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
 
@@ -84,6 +91,10 @@ begin
       axiSlaveRegister(regCon, x"10", 0, v.config.numTrains);
       axiSlaveRegister(regCon, x"14", 0, v.config.numCycles);
       axiSlaveRegister(regCon, x"18", 0, v.config.serBaud);
+      axiSlaveRegister(regCon, x"1C", 0, v.config.loopback);
+
+      axiSlaveRegister(regCon, x"20", 0, v.config.rxUserRst);
+      axiSlaveRegister(regCon, x"24", 0, v.config.txUserRst);
 
       axiSlaveRegisterR(regCon, x"40", 0, rxStatus.rxRst);
       axiSlaveRegisterR(regCon, x"44", 0, rxStatus.evrRst);
@@ -100,6 +111,7 @@ begin
 
       axiSlaveRegisterR(regCon, x"80", 0, txStatus.txRst);
       axiSlaveRegisterR(regCon, x"84", 0, txStatus.txClkFreq);
+      axiSlaveRegisterR(regCon, x"88", 0, txStatus.evrTrigRate);
 
       axiSlaveRegisterR(regCon, x"FC", 0, ite(DEFAULT_CLINK_G, toSlv(1, 32), toSlv(0, 32)));
 
@@ -118,6 +130,7 @@ begin
       axilWriteSlave <= r.axilWriteSlave;
       axilReadSlave  <= r.axilReadSlave;
       config         <= r.config;
+      loopBack       <= r.config.loopback;
 
    end process comb;
 
@@ -127,5 +140,23 @@ begin
          r <= rin after TPD_G;
       end if;
    end process seq;
+
+   U_rxUserRst : entity work.PwrUpRst
+      generic map (
+         TPD_G      => TPD_G,
+         DURATION_G => 12500000)
+      port map (
+         arst   => r.config.rxUserRst,
+         clk    => sysClk,
+         rstOut => rxUserRst);
+
+   U_txUserRst : entity work.PwrUpRst
+      generic map (
+         TPD_G      => TPD_G,
+         DURATION_G => 12500000)
+      port map (
+         arst   => r.config.txUserRst,
+         clk    => sysClk,
+         rstOut => txUserRst);
 
 end rtl;
