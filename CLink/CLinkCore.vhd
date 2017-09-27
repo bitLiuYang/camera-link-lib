@@ -2,7 +2,7 @@
 -- File       : CLinkCore.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-05
--- Last update: 2017-09-25
+-- Last update: 2017-09-26
 -------------------------------------------------------------------------------
 -- Description: CLinkCore top-level
 -------------------------------------------------------------------------------
@@ -50,7 +50,11 @@ entity CLinkCore is
       txRst           : in  sl;
       txData          : out slv(15 downto 0);
       txDataK         : out slv(1 downto 0);
+      txDiffCtrl      : out slv(7 downto 0);
+      txPreCursor     : out slv(7 downto 0);
+      txPostCursor    : out slv(7 downto 0);
       loopback        : out slv(2 downto 0);
+      gtDrpOverride   : out sl;
       -- DMA Interface (sysClk domain)
       dmaObMaster     : in  AxiStreamMasterType;
       dmaObSlave      : out AxiStreamSlaveType;
@@ -164,7 +168,11 @@ begin
          config          => config,
          rxUserRst       => rxUserRst,
          txUserRst       => txUserRst,
+         txDiffCtrl      => txDiffCtrl,
+         txPreCursor     => txPreCursor,
+         txPostCursor    => txPostCursor,
          loopback        => loopback,
+         gtDrpOverride   => gtDrpOverride,
          -- AXI Lite interface
          sysClk          => sysClk,
          sysRst          => sysRst,

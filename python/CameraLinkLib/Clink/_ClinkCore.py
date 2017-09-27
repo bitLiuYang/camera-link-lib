@@ -132,7 +132,47 @@ class ClinkCore(pr.Device):
             bitOffset    = 0,
             base         = pr.UInt,
             function     = pr.BaseCommand.createTouch(0x1)
-        ))              
+        ))     
+
+        self.add(pr.RemoteVariable( 
+            name         = "TxPreCursor",
+            description  = "TxPreCursor",
+            offset       = 0x28,
+            bitSize      = 8,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            mode         = "RW",
+        ))    
+
+        self.add(pr.RemoteVariable( 
+            name         = "TxPostCursor",
+            description  = "TxPostCursor",
+            offset       = 0x2C,
+            bitSize      = 8,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            mode         = "RW",
+        )) 
+
+        self.add(pr.RemoteVariable( 
+            name         = "TxDiffCtrl",
+            description  = "TxDiffCtrl",
+            offset       = 0x30,
+            bitSize      = 8,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            mode         = "RW",
+        ))  
+
+        self.add(pr.RemoteVariable( 
+            name         = "GtDrpOverride",
+            description  = "GtDrpOverride",
+            offset       = 0x34,
+            bitSize      = 1,
+            bitOffset    = 0,
+            base         = pr.UInt,
+            mode         = "RW",
+        ))          
 
         self.add(pr.RemoteVariable( 
             name         = "RxRstStatus",

@@ -2,7 +2,7 @@
 -- File       : CLinkReg.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-20
--- Last update: 2017-09-25
+-- Last update: 2017-09-26
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -36,7 +36,11 @@ entity CLinkReg is
       config          : out CLinkConfigType;
       rxUserRst       : out sl;
       txUserRst       : out sl;
+      txDiffCtrl      : out slv(7 downto 0);
+      txPreCursor     : out slv(7 downto 0);
+      txPostCursor    : out slv(7 downto 0);
       loopback        : out slv(2 downto 0);
+      gtDrpOverride   : out sl;
       -- AXI-Lite Register Interface (sysClk domain)
       sysClk          : in  sl;
       sysRst          : in  sl;
@@ -49,12 +53,26 @@ end CLinkReg;
 architecture rtl of CLinkReg is
 
    type RegType is record
+      rxUserRst      : sl;
+      txUserRst      : sl;
+      txDiffCtrl     : slv(7 downto 0);
+      txPreCursor    : slv(7 downto 0);
+      txPostCursor   : slv(7 downto 0);
+      loopback       : slv(2 downto 0);
+      gtDrpOverride  : sl;
       config         : CLinkConfigType;
       axilReadSlave  : AxiLiteReadSlaveType;
       axilWriteSlave : AxiLiteWriteSlaveType;
    end record;
 
    constant REG_INIT_C : RegType := (
+      rxUserRst      => '0',
+      txUserRst      => '0',
+      txDiffCtrl     => x"FF",
+      txPreCursor    => x"00",
+      txPostCursor   => x"00",
+      loopback       => (others => '0'),
+      gtDrpOverride  => '0',
       config         => CLINK_CONFIG_INIT_C,
       axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C,
       axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C);
@@ -76,8 +94,8 @@ begin
       v := r;
 
       -- Reset the strobes
-      v.config.rxUserRst := '0';
-      v.config.txUserRst := '0';
+      v.rxUserRst := '0';
+      v.txUserRst := '0';
 
       -- Determine the transaction type
       axiSlaveWaitTxn(regCon, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave);
@@ -91,10 +109,15 @@ begin
       axiSlaveRegister(regCon, x"10", 0, v.config.numTrains);
       axiSlaveRegister(regCon, x"14", 0, v.config.numCycles);
       axiSlaveRegister(regCon, x"18", 0, v.config.serBaud);
-      axiSlaveRegister(regCon, x"1C", 0, v.config.loopback);
+      axiSlaveRegister(regCon, x"1C", 0, v.loopback);
 
-      axiSlaveRegister(regCon, x"20", 0, v.config.rxUserRst);
-      axiSlaveRegister(regCon, x"24", 0, v.config.txUserRst);
+      axiSlaveRegister(regCon, x"20", 0, v.rxUserRst);
+      axiSlaveRegister(regCon, x"24", 0, v.txUserRst);
+      axiSlaveRegister(regCon, x"28", 0, v.txPreCursor);
+      axiSlaveRegister(regCon, x"2C", 0, v.txPostCursor);
+
+      axiSlaveRegister(regCon, x"30", 0, v.txDiffCtrl);
+      axiSlaveRegister(regCon, x"34", 0, v.gtDrpOverride);
 
       axiSlaveRegisterR(regCon, x"40", 0, rxStatus.rxRst);
       axiSlaveRegisterR(regCon, x"44", 0, rxStatus.evrRst);
@@ -130,7 +153,11 @@ begin
       axilWriteSlave <= r.axilWriteSlave;
       axilReadSlave  <= r.axilReadSlave;
       config         <= r.config;
-      loopBack       <= r.config.loopback;
+      loopback       <= r.loopback;
+      txDiffCtrl     <= r.txDiffCtrl;
+      txPreCursor    <= r.txPreCursor;
+      txPostCursor   <= r.txPostCursor;
+      gtDrpOverride  <= r.gtDrpOverride;
 
    end process comb;
 
@@ -144,18 +171,18 @@ begin
    U_rxUserRst : entity work.PwrUpRst
       generic map (
          TPD_G      => TPD_G,
-         DURATION_G => 12500000)
+         DURATION_G => 125000000)
       port map (
-         arst   => r.config.rxUserRst,
+         arst   => r.rxUserRst,
          clk    => sysClk,
          rstOut => rxUserRst);
 
    U_txUserRst : entity work.PwrUpRst
       generic map (
          TPD_G      => TPD_G,
-         DURATION_G => 12500000)
+         DURATION_G => 125000000)
       port map (
-         arst   => r.config.txUserRst,
+         arst   => r.txUserRst,
          clk    => sysClk,
          rstOut => txUserRst);
 
