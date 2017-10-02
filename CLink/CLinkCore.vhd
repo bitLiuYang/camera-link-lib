@@ -2,7 +2,7 @@
 -- File       : CLinkCore.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-09-05
--- Last update: 2017-09-26
+-- Last update: 2017-10-02
 -------------------------------------------------------------------------------
 -- Description: CLinkCore top-level
 -------------------------------------------------------------------------------
@@ -103,6 +103,10 @@ architecture mapping of CLinkCore is
    signal rxStatus : CLinkRxStatusType;
    signal txStatus : CLinkTxStatusType;
    signal config   : CLinkConfigType;
+
+   constant TDEST_ROUTES_C : Slv8Array := (
+      0 => toSlv((16*LANE_G)+0, 8),
+      1 => toSlv((16*LANE_G)+1, 8));
 
 
 begin
@@ -279,7 +283,8 @@ begin
       generic map (
          TPD_G          => TPD_G,
          NUM_SLAVES_G   => 2,
-         MODE_G         => "INDEXED",
+         MODE_G         => "ROUTED",
+         TDEST_ROUTES_G => TDEST_ROUTES_C,
          ILEAVE_EN_G    => true,        -- Using interleaving MUX
          ILEAVE_REARB_G => 0,
          PIPE_STAGES_G  => 1)
